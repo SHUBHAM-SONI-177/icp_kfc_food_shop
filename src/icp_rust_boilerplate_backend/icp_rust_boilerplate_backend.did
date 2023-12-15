@@ -1,0 +1,28 @@
+type Error = variant { NotFound : record { msg : text } };
+type FoodItem = record {
+  id : nat64;
+  name : text;
+  description : text;
+  created_att : nat64;
+  available : bool;
+  price : float64;
+};
+type FoodItemPayload = record {
+  name : text;
+  description : text;
+  price : float64;
+};
+type Result = variant { Ok : FoodItem; Err : Error };
+type Result_1 = variant { Ok; Err : Error };
+service : {
+  add_food_item : (FoodItemPayload) -> (opt FoodItem);
+  delete_food_item : (nat64) -> (Result);
+  get_food_item : (nat64) -> (Result) query;
+  get_menu : () -> (vec FoodItem) query;
+  order_food_item : (nat64) -> (Result_1);
+  receive_food_item : (nat64) -> (Result_1);
+  search_food_item_by_above_price : (float64) -> (vec FoodItem) query;
+  search_food_item_by_below_price : (float64) -> (vec FoodItem) query;
+  search_food_item_by_name : (text) -> (vec FoodItem) query;
+  update_food_item : (nat64, FoodItemPayload) -> (Result);
+}
