@@ -1,5 +1,6 @@
 #[macro_use]
 extern crate serde;
+
 use candid::{Decode, Encode};
 use ic_cdk::api::time;
 use ic_stable_structures::memory_manager::{MemoryId, MemoryManager, VirtualMemory};
@@ -17,10 +18,9 @@ struct FoodItem {
     description: String,
     price: f64,
     available: bool,
-    created_att: u64,
+    created_at: u64,  // Fixed typo in field name
 }
 
-// Implementing Storable and BoundedStorable traits for FoodItem
 impl Storable for FoodItem {
     fn to_bytes(&self) -> std::borrow::Cow<[u8]> {
         Cow::Owned(Encode!(self).unwrap())
@@ -36,11 +36,6 @@ impl BoundedStorable for FoodItem {
     const IS_FIXED_SIZE: bool = false;
 }
 
-
-// ... (existing thread-local variables and payload structure)
-
-// New thread-local variables for our Food Shop app
-
 thread_local! {
     static FOOD_MEMORY_MANAGER: RefCell<MemoryManager<DefaultMemoryImpl>> = RefCell::new(
         MemoryManager::init(DefaultMemoryImpl::default())
@@ -55,7 +50,6 @@ thread_local! {
 
 }
 
-// Helper method to perform insert for FoodItem
 fn do_insert_food_item(item: &FoodItem) {
     FOOD_MENU.with(|service| service.borrow_mut().insert(item.id, item.clone()));
 }
@@ -67,8 +61,6 @@ struct FoodItemPayload {
     price: f64,
 }
 
-
-// get_food_item Function:
 #[ic_cdk::query]
 fn get_food_item(id: u64) -> Result<FoodItem, Error> {
     match _get_food_item(&id) {
@@ -79,12 +71,10 @@ fn get_food_item(id: u64) -> Result<FoodItem, Error> {
     }
 }
 
-// _get_food_item Function:
 fn _get_food_item(id: &u64) -> Option<FoodItem> {
     FOOD_MENU.with(|s| s.borrow().get(id).cloned())
 }
 
-// add_food_item Function:
 #[ic_cdk::update]
 fn add_food_item(item: FoodItemPayload) -> Option<FoodItem> {
     let id = FOOD_ID_COUNTER
@@ -99,13 +89,12 @@ fn add_food_item(item: FoodItemPayload) -> Option<FoodItem> {
         description: item.description,
         price: item.price,
         available: true,
-        created_att: time(),
+        created_at: time(),
     };
     do_insert_food_item(&food_item);
     Some(food_item)
 }
 
-// update_food_item Function:
 #[ic_cdk::update]
 fn update_food_item(id: u64, payload: FoodItemPayload) -> Result<FoodItem, Error> {
     match FOOD_MENU.with(|service| service.borrow().get(&id).cloned()) {
@@ -122,7 +111,6 @@ fn update_food_item(id: u64, payload: FoodItemPayload) -> Result<FoodItem, Error
     }
 }
 
-// delete_food_item Function:
 #[ic_cdk::update]
 fn delete_food_item(id: u64) -> Result<FoodItem, Error> {
     match FOOD_MENU.with(|service| service.borrow_mut().remove(&id)) {
@@ -147,7 +135,6 @@ fn get_menu() -> Vec<FoodItem> {
     })
 }
 
-// search_food_item_by_name Function:
 #[ic_cdk::query]
 fn search_food_item_by_name(name: String) -> Vec<FoodItem> {
     FOOD_MENU.with(|service| {
@@ -164,7 +151,6 @@ fn search_food_item_by_name(name: String) -> Vec<FoodItem> {
     })
 }
 
-// search_food_item_by_price Function:
 #[ic_cdk::query]
 fn search_food_item_by_below_price(price: f64) -> Vec<FoodItem> {
     FOOD_MENU.with(|service| {
@@ -180,7 +166,7 @@ fn search_food_item_by_below_price(price: f64) -> Vec<FoodItem> {
             .collect()
     })
 }
-// search_food_item_by_price Function:
+
 #[ic_cdk::query]
 fn search_food_item_by_above_price(price: f64) -> Vec<FoodItem> {
     FOOD_MENU.with(|service| {
@@ -197,9 +183,6 @@ fn search_food_item_by_above_price(price: f64) -> Vec<FoodItem> {
     })
 }
 
-// ... (existing code)
-
-// order_food_item Function:
 #[ic_cdk::update]
 fn order_food_item(id: u64) -> Result<(), Error> {
     match FOOD_MENU.with(|service| {
@@ -219,7 +202,6 @@ fn order_food_item(id: u64) -> Result<(), Error> {
     }
 }
 
-// receive_food_item Function:
 #[ic_cdk::update]
 fn receive_food_item(id: u64) -> Result<(), Error> {
     match FOOD_MENU.with(|service| {
@@ -239,11 +221,10 @@ fn receive_food_item(id: u64) -> Result<(), Error> {
     }
 }
 
-// 2.7.7 enum Error:
 #[derive(candid::CandidType, Deserialize, Serialize)]
 enum Error {
     NotFound { msg: String },
+    ItemNotAvailable { msg: String },  // Added variant for item not available
 }
 
-// To generate the Candid interface definitions for our canister
 ic_cdk::export_candid!();
